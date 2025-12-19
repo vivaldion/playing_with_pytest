@@ -1,0 +1,17 @@
+import pytest
+from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.options import Options
+
+def pytest_addoption(parser):
+    parser.addoption('--language', action='store', default='ru',
+                     help="Choose browser: chrome or firefox")
+
+@pytest.fixture(scope="function")
+def browser(request):
+    language = request.config.getoption("language")
+    options = Options()
+    options.add_experimental_option('prefs', {'intl.accept_languages': language})
+    browser = Chrome(options=options)
+    browser.implicitly_wait(10)
+    yield browser
+    browser.quit()
