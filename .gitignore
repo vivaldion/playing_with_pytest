@@ -3,3 +3,4 @@ venv*/
 pyvenv.cfg
 .pytest_cache/
 __pycache__/
+screenshot*

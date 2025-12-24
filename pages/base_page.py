@@ -1,42 +1,88 @@
-from selenium.common.exceptions import NoSuchElementException,TimeoutException, NoAlertPresentException
-from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import math
+from datetime import datetime
 
-class BasePage():
-    def __init__(self, browser: WebDriver, url, timeout=10):
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, TimeoutException
+from selenium.webdriver.remote.webdriver import WebDriver
+
+from .locators import BasePageLocators
+
+
+class BasePage:
+    def __init__(self, browser: WebDriver, url: str):
         self.browser = browser
         self.url = url
-        self.browser.implicitly_wait(timeout)
+        # не используем т.к. timeout используется в проверке наличия элемента
+        # self.browser.implicitly_wait(10)
 
     def open(self):
         self.browser.get(self.url)
 
-    def is_element_present(self, how, what):
+    # проверка на наличие элемента с ожиданием timeout
+    def is_element_present(self, how, what, timeout=4, screenshot=True):
         try:
-            self.browser.find_element(how, what)
-        except NoSuchElementException:
+            # self.browser.find_element(how, what)
+            WebDriverWait(self.browser, timeout). \
+                until(EC.presence_of_element_located((how, what)))
+
+        except TimeoutException:
+            if screenshot:
+                self.take_screenshot()
             return False
+
+        except NoSuchElementException:
+            if screenshot:
+                self.take_screenshot()
+            return False
+
         return True
 
-    def is_not_element_present(self, how, what, timeout=4):
+    # проверка на отсутствие элемента с ожиданием timeout
+    def is_not_element_present(self, how, what, timeout=4, screenshot=True):
         try:
-            WebDriverWait(self.browser, timeout).until(EC.presence_of_element_located((how, what)))
+            WebDriverWait(self.browser, timeout). \
+                until(EC.presence_of_element_located((how, what)))
         except TimeoutException:
+            if screenshot:
+                self.take_screenshot()
+
             return True
 
         return False
 
-    def is_disappeared(self, how, what, timeout=4):
+    # проверка на исчезновение элемента в течении timeout
+    def is_disappeared(self, how, what, timeout=4, screenshot=True):
         try:
             WebDriverWait(self.browser, timeout, 1, TimeoutException). \
                 until_not(EC.presence_of_element_located((how, what)))
         except TimeoutException:
+            if screenshot:
+                self.take_screenshot()
             return False
 
         return True
 
+    def take_screenshot(self):
+        now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        namefile = f"screenshot-{now}.png"
+        self.browser.get_screenshot_as_file(namefile)
+        print(f"Taked screenshot: {namefile}")
+
+    # общие для всех страниц методы
+    def go_to_cart_page(self):
+        link = self.browser.find_element(*BasePageLocators.BTN_CART)
+        link.click()
+
+    def go_to_login_page(self):
+        link = self.browser.find_element(*BasePageLocators.LOGIN_LINK)
+        link.click()
+
+    def should_be_btn_cart(self):
+        assert self.is_element_present(*BasePageLocators.BTN_CART), "Button of cart not presented"
+
+    def should_be_login_link(self):
+        assert self.is_element_present(*BasePageLocators.LOGIN_LINK), "Login link is not presented"
 
     def solve_quiz_and_get_code(self):
         alert = self.browser.switch_to.alert
@@ -47,9 +93,7 @@ class BasePage():
         try:
             alert = self.browser.switch_to.alert
             alert_text = alert.text
-            txt = f"Your code: {alert_text}"
-            print(txt)
+            print(f"Your code: {alert_text}")
             alert.accept()
         except NoAlertPresentException:
-            txt = 'No second alert presented'
-            print(txt)
+            print("No second alert presented")

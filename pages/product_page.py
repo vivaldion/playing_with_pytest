@@ -1,59 +1,58 @@
 from .base_page import BasePage
 from .locators import ProductPageLocators
-from selenium.common.exceptions import NoSuchElementException
+
 
 class ProductPage(BasePage):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.button_add_to_chart = None
-        #self.button_add_to_chart = self.browser.find_element(*ProductPageLocators.add_to_chart)
+    product_name = ''
+    product_price = ''
+    product_description = ''
 
-    def should_be_add_to_chart_button(self):
-        assert self.is_element_present(*ProductPageLocators.add_to_chart),\
-            "Add to chart button is not presented"
+    def add_product_to_cart_and_calculate(self):
+        self.should_be_name()
+        self.should_be_price()
+        self.should_be_description()
+        self.should_be_add_button()
+        self.should_not_be_success_message()
 
-        self.button_add_to_chart = self.browser.find_element(*ProductPageLocators.add_to_chart)
-        return True
+        self.add_product_to_cart()
+        self.solve_quiz_and_get_code()
+
+        self.should_be_success()
+        self.check_success_message()
+
+    def add_product_to_cart(self):
+        btn = self.browser.find_element(*ProductPageLocators.BTN_ADD_TO_CART)
+        btn.click()
+
+    def is_disappered_success_message(self):
+        assert self.is_disappeared(*ProductPageLocators.SUCCESS_MESSAGES), "Wrong show success message"
+
+    def should_be_name(self):
+        assert self.is_element_present(*ProductPageLocators.PRODUCT_NAME), "Name of product not found"
+        self.product_name = self.browser.find_element(*ProductPageLocators.PRODUCT_NAME).text
+
+    def should_be_price(self):
+        assert self.is_element_present(*ProductPageLocators.PRODUCT_PRICE), "Price of product not found"
+        self.product_price = self.browser.find_element(*ProductPageLocators.PRODUCT_PRICE).text
+
+    def should_be_description(self):
+        assert self.is_element_present(*ProductPageLocators.PRODUCT_DESCRIPTION), "Description of product not found"
+        self.product_description = self.browser.find_element(*ProductPageLocators.PRODUCT_DESCRIPTION).text
+
+    def should_be_success(self):
+        assert self.is_element_present(*ProductPageLocators.SUCCESS_MESSAGES), "Message of Success added product in " \
+                                                                               "cart not found "
 
     def should_not_be_success_message(self):
-        assert self.is_not_element_present(*ProductPageLocators.success_added), \
-            "Success message is presented, but should not be"
+        assert self.is_not_element_present(*ProductPageLocators.SUCCESS_MESSAGES), "Wrong show success message"
 
-    def should_dissapeare_succes_message(self):
-        assert self.is_disappeared(*ProductPageLocators.success_added), \
-        'should disspeare, but didnt'
+    def should_be_add_button(self):
+        assert self.is_element_present(*ProductPageLocators.BTN_ADD_TO_CART), "Button 'Add to cart' is not " \
+                                                                                "presented "
 
-    def press_button_add_to_chart(self):
-        if self.button_add_to_chart is None:
-            self.should_be_add_to_chart_button()
-        self.button_add_to_chart.click()
+    def check_success_message(self):
+        msg_lst = self.browser.find_elements(*ProductPageLocators.SUCCESS_MESSAGES)
+        assert len(msg_lst) == 3, "Success message not found"
 
-    def is_price_and_name_ordered_presents(self):
-        self.is_price_presents_ordered()
-        self.is_name_presents_ordered()
-
-
-    def price_and_name(self):
-        try:
-            self.name = self.browser.find_element(*ProductPageLocators.product_name).text
-            self.price = self.browser.find_element(*ProductPageLocators.price_value).text
-        except NoSuchElementException:
-            raise AssertionError('There is no name in price or product page')
-
-
-    def is_price_presents_ordered(self):
-        self.is_element_present(*ProductPageLocators.price_value_ordered)
-        self.price_ordered = self.browser.find_element(*ProductPageLocators.price_value_ordered).text
-
-    def is_name_presents_ordered(self):
-        self.is_element_present(*ProductPageLocators.product_name_ordered)
-        self.name_ordered = self.browser.find_element(*ProductPageLocators.product_name_ordered).text
-
-
-
-    def is_name_presents_correctly(self):
-        assert self.name == self.name_ordered, 'name is not correct'
-        assert self.price == self.price_ordered, 'price is not correct'
-
-
-
+        assert self.product_name == msg_lst[0].text, "Wrong name product added to cart"
+        assert self.product_price == msg_lst[2].text, "Wrong price product added to cart"
